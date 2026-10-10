@@ -1,0 +1,56 @@
+services:
+  postgres-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: ${BACKUP_PGHOST:?Set BACKUP_PGHOST}
+      PGPORT: ${BACKUP_PGPORT:-5432}
+      PGDATABASE: ${BACKUP_PGDATABASE:?Set BACKUP_PGDATABASE}
+      PGUSER: ${BACKUP_PGUSER:?Set BACKUP_PGUSER}
+      PGPASSWORD: ${BACKUP_PGPASSWORD:?Set BACKUP_PGPASSWORD}
+      PGSSLMODE: ${BACKUP_PGSSLMODE:-verify-full}
+      PGSSLROOTCERT: ${BACKUP_PGSSLROOTCERT:-/etc/ssl/cert.pem}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?Set BACKUP_ENCRYPTION_KEY in local .env}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - encrypted_backups:/backups
+    networks:
+      - database
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      set -o pipefail
+      umask 077
+      while true; do
+        stamp=$$(date -u +%Y%m%dT%H%M%SZ)
+        archive="/backups/flamenco-$${stamp}.dump.enc"
+        temporary="$${archive}.tmp"
+        temporary_hmac="$${temporary}.hmac"
+        if pg_dump --format=custom --no-owner --no-acl |
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 600000 \
+            -pass env:BACKUP_ENCRYPTION_KEY -out "$$temporary"; then
+          openssl dgst -sha256 \
+            -hmac "integrity:$${BACKUP_ENCRYPTION_KEY}" "$$temporary" |
+            awk '{print $$2}' > "$$temporary_hmac"
+          mv "$$temporary" "$$archive"
+          mv "$$temporary_hmac" "$${archive}.hmac"
+          find /backups -type f -name 'flamenco-*.dump.enc' \
+            -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
+          find /backups -type f -name 'flamenco-*.dump.enc.hmac' \
+            -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
+          echo "Encrypted PostgreSQL backup created: $${archive}"
+        else
+          rm -f "$$temporary"
+          rm -f "$$temporary_hmac"
+          echo "PostgreSQL backup failed" >&2
+          exit 1
+        fi
+        sleep 86400
+      done
+
+networks:
+  database:
+    external: true
+    name: ${BACKUP_DOCKER_NETWORK:?Set BACKUP_DOCKER_NETWORK to a Docker network that can reach PostgreSQL}
+
+volumes:
+  encrypted_backups:

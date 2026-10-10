@@ -1,0 +1,71 @@
+name: Migrations
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Применения к production выполняются строго по одному.
+concurrency:
+  group: migrations-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Та же основная версия, что у проекта Supabase.
+        image: postgres:17
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --require-hashes -r requirements.txt
+      - name: Test migrations on an empty PostgreSQL
+        run: python -m unittest discover -s tests -v
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Секрет DATABASE_URL — в Settings → Environments → production (роль
+    # flamenco_app через session pooler Supabase, порт 5432).
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL_MODE: verify-full
+      DATABASE_SSL_CA: certs/supabase-root-2021-ca.crt
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --require-hashes -r requirements.txt
+      - name: Check secret
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Секрет DATABASE_URL не задан в environment production"
+            exit 1
+          fi
+      - run: python migrate.py status
+      - name: Apply migrations to Supabase
+        run: python migrate.py

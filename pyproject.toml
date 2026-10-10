@@ -1,0 +1,7 @@
+# Только настройки инструментов: пакета здесь нет, запуск — python migrate.py.
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F"]
