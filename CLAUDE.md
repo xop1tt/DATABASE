@@ -1,8 +1,8 @@
-# Claude Code Instructions — flamenco-db
+# Claude Code Instructions — DATABASE
 
 Schema of the Flamenco Studio PostgreSQL database. The only place where the
-schema changes. The bot and web API (`flamenco-studio-bot`, local folder
-`TG BOT`) and the website (through the API) use this database but never apply
+schema changes. The bot and web API (`TELEGRAM-BOT`, local folder
+`TELEGRAM BOT`) and the website (through the API) use this database but never apply
 migrations; on startup they check `REQUIRED_SCHEMA_VERSION`
 (`src/flamenco_bot/database/repository.py` in the bot repository).
 
@@ -19,7 +19,7 @@ migrations; on startup they check `REQUIRED_SCHEMA_VERSION`
   read the existing constraints and triggers before changing those tables.
 - After adding a migration: run `python -m unittest discover -s tests -v`
   with `TEST_DATABASE_URL`, then the bot's integration tests
-  (`FLAMENCO_DB_DIR` pointing here), and raise `REQUIRED_SCHEMA_VERSION` in
+  (`DATABASE_DIR` pointing here), and raise `REQUIRED_SCHEMA_VERSION` in
   the bot if its code needs the new schema.
 - Never put credentials in the repository. `DATABASE_URL` for production lives
   only in the GitHub environment `production`.

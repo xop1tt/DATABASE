@@ -15,7 +15,7 @@ localhost.
 не ниже нужной коду (flamenco_bot.database.repository.REQUIRED_SCHEMA_VERSION).
 Поэтому порядок выкладки — сначала этот репозиторий, затем бот.
 
-Модуль импортируют и тесты бота (FLAMENCO_DB_DIR), чтобы создавать схему
+Модуль импортируют и тесты бота (DATABASE_DIR), чтобы создавать схему
 во временных схемах PostgreSQL той же логикой, что и в production.
 """
 

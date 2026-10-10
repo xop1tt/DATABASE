@@ -1,11 +1,11 @@
 # Flamenco Studio — база данных
 
 Схема PostgreSQL Flamenco Studio: миграции и их применение. Это единственное
-место, где меняется схема. Бот, веб-API (репозиторий `flamenco-studio-bot`)
+место, где меняется схема. Бот, веб-API (репозиторий `TELEGRAM-BOT`)
 и сайт (через API) работают с одной базой, но миграции не применяют.
 
 ```text
-flamenco-db (этот репозиторий)
+DATABASE (этот репозиторий)
    │  push в main → GitHub Actions: тесты на PostgreSQL 17 → migrate.py
    ▼
 Supabase PostgreSQL, схема flamenco  ◄── бот и API (проверяют версию схемы)
