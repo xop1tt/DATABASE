@@ -62,6 +62,9 @@ Supabase PostgreSQL, схема flamenco  ◄── бот и API (провер�
   `lesson_slots.teacher_telegram_id`, журнал действий сотрудников
   `staff_audit_log`. Колонки `bot_users.is_admin` и `users.is_admin` остаются,
   пока работает предыдущая версия бота.
+- `017_catalog_and_settings.sql` — направления `class_formats`, абонементы
+  `lesson_packages` (цена, срок действия) и правила записи `studio_settings`
+  вместо констант кода; CHECK на ключи заменены внешними ключами.
 
 ## Новая миграция
 
