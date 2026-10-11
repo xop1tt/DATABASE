@@ -73,6 +73,9 @@ Supabase PostgreSQL, схема flamenco  ◄── бот и API (провер�
   ручных начислений (баланс не меняется: +N к выдаче и −N без партии).
 - `019_waitlist.sql` — лист ожидания `lesson_waitlist` на заполненные занятия
   и уведомление `waitlist_seat`.
+- `020_broadcasts_and_notes.sql` — рассылки `broadcasts` (уведомление
+  `announcement` каждому получателю), служебные заметки `client_notes`,
+  индекс сбоев доставки уведомлений.
 
 ## Новая миграция
 
