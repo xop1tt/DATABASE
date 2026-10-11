@@ -76,6 +76,11 @@ Supabase PostgreSQL, схема flamenco  ◄── бот и API (провер�
 - `020_broadcasts_and_notes.sql` — рассылки `broadcasts` (уведомление
   `announcement` каждому получателю), служебные заметки `client_notes`,
   индекс сбоев доставки уведомлений.
+- `021_site_maintenance.sql` — техническое обслуживание сайта: окна работ
+  `site_maintenance` (не больше одного незавершённого), журнал
+  `site_maintenance_events`, факты постановки рассылок
+  `site_maintenance_dispatches` (этап — один раз), уведомления
+  `maintenance_*` в общем outbox.
 
 ## Новая миграция
 

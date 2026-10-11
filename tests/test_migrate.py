@@ -11,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -131,6 +132,58 @@ class ApplyMigrationsPostgresTests(unittest.IsolatedAsyncioTestCase):
         applied = await migrate.apply_migrations(self.connection)
 
         self.assertEqual(applied, [v for v, _ in files[5:]])
+
+    async def test_site_maintenance_constraints(self):
+        import asyncpg
+
+        await migrate.apply_migrations(self.connection)
+        starts_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        insert = """
+            INSERT INTO site_maintenance (
+                status, title, description, starts_at, ends_at,
+                warning_minutes, started_at, finished_at, created_by
+            )
+            VALUES ($1, 'Работы', 'Описание', $2, $3, $4, $5, $6, 1)
+            RETURNING id
+        """
+        first = await self.connection.fetchval(
+            insert, "scheduled", starts_at, None, [1440, 60, 10], None, None
+        )
+        # Незавершённое окно — только одно.
+        with self.assertRaises(asyncpg.UniqueViolationError):
+            await self.connection.fetchval(
+                insert, "active", starts_at, None, [60], starts_at, None
+            )
+        finished = datetime.now(timezone.utc)
+        for ends_at, minutes, started_at, finished_at, status in (
+            # окончание раньше начала
+            (starts_at - timedelta(minutes=1), [60], None, finished, "cancelled"),
+            # недопустимые минуты предупреждений
+            (None, [0], None, finished, "cancelled"),
+            (None, [20000], None, finished, "cancelled"),
+            # завершённое без момента завершения
+            (None, [60], starts_at, None, "completed"),
+        ):
+            with self.assertRaises(asyncpg.CheckViolationError):
+                await self.connection.fetchval(
+                    insert, status, starts_at, ends_at, minutes, started_at, finished_at
+                )
+        # Этап рассылки ставится один раз.
+        stage = (
+            "INSERT INTO site_maintenance_dispatches (maintenance_id, revision, stage) "
+            "VALUES ($1, 1, 'warning:60')"
+        )
+        await self.connection.execute(stage, first)
+        with self.assertRaises(asyncpg.UniqueViolationError):
+            await self.connection.execute(stage, first)
+        # Новые типы уведомлений допустимы в outbox.
+        await self.connection.execute(
+            "INSERT INTO bot_users (telegram_id, user_name) VALUES (7, 'Тест')"
+        )
+        await self.connection.execute(
+            "INSERT INTO user_notifications (telegram_id, kind, dedupe_key) "
+            "VALUES (7, 'maintenance_started', 'm:1')"
+        )
 
     async def test_failed_migration_rolls_back_everything(self):
         broken = Path(tempfile.mkdtemp())
