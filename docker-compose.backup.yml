@@ -1,6 +1,8 @@
 services:
   postgres-backup:
-    image: postgres:16-alpine
+    # pg_dump той же основной версии, что сервер (Supabase — PostgreSQL 17):
+    # более старый pg_dump отказывается работать с новым сервером.
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
     environment:
       PGHOST: ${BACKUP_PGHOST:?Set BACKUP_PGHOST}
