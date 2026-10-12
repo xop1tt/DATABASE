@@ -5,3 +5,6 @@ __pycache__/
 .env.*
 *.dump
 .DS_Store
+.coverage
+.coverage.*
+.ruff_cache/
