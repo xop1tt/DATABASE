@@ -40,8 +40,20 @@ jobs:
         with:
           python-version: "3.13"
       - run: python -m pip install --require-hashes -r requirements.txt
-      - name: Test migrations on an empty PostgreSQL
-        run: python -m unittest discover -s tests -v
+      # Инструменты проверки не входят в хэшированный requirements.txt
+      # (они нужны только тестам), поэтому версии закреплены явно.
+      - run: python -m pip install coverage==7.16.2 ruff==0.17.0
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test migrations and schema on an empty PostgreSQL
+        run: |
+          python -m coverage run --branch --source=. --omit='tests/*' \
+            -m unittest discover -s tests -v
+      - name: Coverage report
+        run: |
+          python -m coverage report --show-missing --fail-under=90
 
   deploy:
     needs: test
