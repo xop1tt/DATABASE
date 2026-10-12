@@ -110,6 +110,15 @@ class PostgresTestCase(unittest.IsolatedAsyncioTestCase):
             key,
         )
 
+    @property
+    def restrict_errors(self):
+        """Нарушение ON DELETE RESTRICT: PostgreSQL 17 отдаёт SQLSTATE 23503
+        (ForeignKeyViolationError), 18 — 23001 (RestrictViolationError)."""
+        return (
+            self.asyncpg.ForeignKeyViolationError,
+            self.asyncpg.RestrictViolationError,
+        )
+
     async def assertRejected(self, error, query, *args):
         """Запрос отклонён БД, а транзакция теста остаётся пригодной."""
         async with self.connection.transaction():

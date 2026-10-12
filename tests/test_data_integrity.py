@@ -251,7 +251,7 @@ class BookingTests(PostgresTestCase):
             "INSERT INTO lesson_bookings (slot_id, telegram_id) VALUES ($1, 1)", slot
         )
         await self.assertRejected(
-            self.asyncpg.RestrictViolationError,
+            self.restrict_errors,
             "DELETE FROM lesson_slots WHERE id = $1",
             slot,
         )
@@ -556,7 +556,7 @@ class PaymentsAndLedgerTests(PostgresTestCase):
         payment = await self.add_payment(1)
         await self._ledger("purchase", 1, payment_id=payment)
         await self.assertRejected(
-            self.asyncpg.RestrictViolationError,
+            self.restrict_errors,
             "DELETE FROM bot_users WHERE telegram_id = 1",
         )
         self.assertEqual(
@@ -774,14 +774,14 @@ class SupportNotificationsAndCatalogTests(PostgresTestCase):
     async def test_package_in_use_cannot_be_deleted(self):
         await self.add_payment(1)
         await self.assertRejected(
-            self.asyncpg.RestrictViolationError,
+            self.restrict_errors,
             "DELETE FROM lesson_packages WHERE key = 'single'",
         )
 
     async def test_class_format_in_use_cannot_be_deleted(self):
         await self.add_slot(class_key="individual")
         await self.assertRejected(
-            self.asyncpg.RestrictViolationError,
+            self.restrict_errors,
             "DELETE FROM class_formats WHERE key = 'individual'",
         )
 
@@ -794,7 +794,7 @@ class SupportNotificationsAndCatalogTests(PostgresTestCase):
             "INSERT INTO staff_members (telegram_id, role) VALUES (1, 'teacher')"
         )
         await self.assertRejected(
-            self.asyncpg.RestrictViolationError,
+            self.restrict_errors,
             "DELETE FROM bot_users WHERE telegram_id = 1",
         )
         await self.assertRejected(
